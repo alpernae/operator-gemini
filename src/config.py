@@ -37,6 +37,11 @@ class Config:
     CAMERA_CAPTURE_INTERVAL = 2.0
     SCREEN_CAPTURE_INTERVAL = 3.0
     
+    # Real-time Display Configuration
+    ENABLE_REAL_TIME_DISPLAY = True
+    DISPLAY_TYPING_INDICATOR = True
+    CONVERSATION_SEPARATOR = "-" * 40
+    
     # Error handling
     QUOTA_ERROR_MESSAGE = """
 🚨 API Quota Exceeded!

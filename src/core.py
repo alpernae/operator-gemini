@@ -22,20 +22,32 @@ class LiveClient:
         self.out_queue = None
         
     async def send_text(self):
-        """Handle text input from user"""
-        print("\n=== Gemini Live API Started ===")
-        print("Commands:")
-        print("- Type your message and press Enter")
-        print("- 'q' or 'quit' to exit")
-        print("- 'camera on/off' to toggle camera")
-        print("- 'screen on/off' to toggle screen sharing")
-        print("- 'status' to check current settings\n")
+        """Handle text input from user with improved real-time interaction"""
+        print("\n" + "="*50)
+        print("🎉 Gemini Live API - Real-Time Conversation")
+        print("="*50)
+        print("📋 Commands:")
+        print("  • Type your message and press Enter")
+        print("  • 'q' or 'quit' to exit")
+        print("  • 'camera on/off' to toggle camera")
+        print("  • 'screen on/off' to toggle screen sharing")
+        print("  • 'status' to check current settings")
+        print("  • 'clear' to clear conversation")
+        print("-"*50)
+        print(f"🔧 Current Mode: {self.video_mode}")
+        print(f"📷 Camera: {'✅ enabled' if self.video_manager.camera_enabled else '❌ disabled'}")
+        print(f"🖥️  Screen: {'✅ enabled' if self.video_manager.screen_enabled else '❌ disabled'}")
+        print("="*50 + "\n")
+
+        conversation_count = 0
 
         while True:
             try:
-                text = await asyncio.to_thread(input, "message > ")
+                # Show user prompt
+                text = await asyncio.to_thread(input, "👤 You: ")
 
                 if text.lower() in ["q", "quit"]:
+                    print("👋 Goodbye!")
                     break
                 elif text.lower() == "camera off":
                     self.video_manager.toggle_camera(False)
@@ -53,20 +65,32 @@ class LiveClient:
                     self.video_manager.toggle_screen(True)
                     print("🖥️ Screen sharing enabled")
                     continue
+                elif text.lower() == "clear":
+                    print("\n" + "🧹 Conversation cleared" + "\n")
+                    conversation_count = 0
+                    continue
                 elif text.lower() == "status":
-                    print(f"📊 Status:")
-                    print(f"  Mode: {self.video_mode}")
-                    print(f"  Camera: {'✅ enabled' if self.video_manager.camera_enabled else '❌ disabled'}")
-                    print(f"  Screen: {'✅ enabled' if self.video_manager.screen_enabled else '❌ disabled'}")
+                    print(f"\n📊 Current Status:")
+                    print(f"  🎥 Mode: {self.video_mode}")
+                    print(f"  📷 Camera: {'✅ enabled' if self.video_manager.camera_enabled else '❌ disabled'}")
+                    print(f"  🖥️  Screen: {'✅ enabled' if self.video_manager.screen_enabled else '❌ disabled'}")
+                    print(f"  💬 Messages: {conversation_count}")
+                    print()
                     continue
 
                 if text.strip():
-                    await self.session_manager.session.send(input=text or ".", end_of_turn=True)
+                    conversation_count += 1
+                    # Send message to AI
+                    await self.session_manager.session.send(input=text, end_of_turn=True)
+                    
+                    # Brief pause to let the AI response start
+                    await asyncio.sleep(0.1)
 
             except KeyboardInterrupt:
+                print("\n\n👋 Interrupted by user")
                 break
             except Exception as e:
-                print(f"❌ Error in send_text: {e}")
+                print(f"\n❌ Error in send_text: {e}")
 
     async def run(self):
         """Main execution loop"""

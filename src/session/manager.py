@@ -31,6 +31,8 @@ class SessionManager:
         
         self.session = None
         self.audio_in_queue = None
+        self.is_ai_speaking = False
+        self.current_response = ""
         
     async def setup_session(self, session, audio_in_queue):
         """Initialize session and audio queue"""
@@ -44,19 +46,51 @@ class SessionManager:
             await self.session.send(input=msg)
 
     async def receive_audio(self):
-        """Receive audio from the session"""
+        """Receive audio and text from the session with real-time display"""
         while True:
-            turn = self.session.receive()
-            async for response in turn:
-                if data := response.data:
-                    self.audio_in_queue.put_nowait(data)
-                    continue
-                if text := response.text:
-                    print(text, end="")
+            if not self.session:
+                await asyncio.sleep(0.1)  # Wait for session to be initialized
+                continue
 
-            # Clear audio queue on interruption
-            while not self.audio_in_queue.empty():
-                self.audio_in_queue.get_nowait()
+            try:
+                turn = self.session.receive()
+                self.current_response = ""
+                response_started = False
+                has_content = False
+                
+                async for response in turn:
+                    if data := response.data:
+                        self.audio_in_queue.put_nowait(data)
+                        continue
+                        
+                    if text := response.text:
+                        # Start new AI response
+                        if not response_started:
+                            if not self.is_ai_speaking:
+                                print(f"\n🤖 AI: ", end="", flush=True)
+                                self.is_ai_speaking = True
+                            response_started = True
+                        
+                        # Print text in real-time
+                        print(text, end="", flush=True)
+                        self.current_response += text
+                        has_content = True
+
+                # End of turn - finish the response
+                if self.is_ai_speaking and has_content:
+                    print("")  # New line after complete response
+                    self.is_ai_speaking = False
+                    
+                    # Show prompt again for next user input
+                    await asyncio.sleep(0.1)  # Small delay for better UX
+                
+                # Clear audio queue on interruption
+                while not self.audio_in_queue.empty():
+                    self.audio_in_queue.get_nowait()
+                    
+            except Exception as e:
+                print(f"\n❌ Error in receive_audio: {e}")
+                await asyncio.sleep(0.5)  # Brief pause before retrying
 
     async def try_connect_with_fallbacks(self):
         """Try to connect with fallback models if quota exceeded"""
