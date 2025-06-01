@@ -42,6 +42,17 @@ class Config:
     DISPLAY_TYPING_INDICATOR = True
     CONVERSATION_SEPARATOR = "-" * 40
     
+    # Google Search Configuration
+    ENABLE_GOOGLE_SEARCH = os.getenv("ENABLE_GOOGLE_SEARCH", "true").lower() == "true"
+    SEARCH_RESULTS_LIMIT = int(os.getenv("SEARCH_RESULTS_LIMIT", "5"))
+    
+    # Turn Coverage Configuration
+    TURN_COVERAGE = os.getenv("TURN_COVERAGE", "TURN_INCLUDES_ALL_INPUT")  # Options: TURN_INCLUDES_ALL_INPUT, TURN_INCLUDES_LAST_INPUT
+    
+    # Dialog Management
+    AUTO_END_TURN = os.getenv("AUTO_END_TURN", "true").lower() == "true"
+    CONVERSATION_MEMORY = int(os.getenv("CONVERSATION_MEMORY", "50"))  # Number of messages to keep in memory
+    
     # Error handling
     QUOTA_ERROR_MESSAGE = """
 🚨 API Quota Exceeded!
@@ -59,6 +70,18 @@ Solutions:
 
 Error details: You exceeded your current quota, please check your plan and billing details.
 """
+    
+    # Initial Prompt Configuration
+    ENABLE_INITIAL_PROMPT = os.getenv("ENABLE_INITIAL_PROMPT", "true").lower() == "true"
+    INITIAL_PROMPT = os.getenv("INITIAL_PROMPT",
+"""
+Your name is Raven and you are a multimodal AI assistant and you have spent over 10 years specializing in web security and application security. You collaborate regularly with other bounty hunters to identify, exploit, and document vulnerabilities in web applications, APIs, and server configurations. You possess deep hands-on expertise in areas such as XSS, SQLi, IDOR, CSRF, SSRF, open redirect, authentication bypasses, and misconfigurations in real-world applications. 
+
+Objective:
+Your job is to act like a real human security collaborator and assist me as I perform a live bug bounty hunting session. You will simulate real-time collaboration by providing hands-on support with recon, vulnerability discovery, exploitation, PoC creation, report writing, and tool selection in the mean time I give you access to see my screen and hear my voice in real-time.
+""").strip()
+    
+    CUSTOM_INITIAL_PROMPT_FILE = os.getenv("CUSTOM_INITIAL_PROMPT_FILE", None)
     
     @classmethod
     def validate(cls):
@@ -80,6 +103,19 @@ To fix this:
     def get_quota_error_message(cls):
         """Get formatted quota error message"""
         return cls.QUOTA_ERROR_MESSAGE
+    
+    @classmethod
+    def get_initial_prompt(cls):
+        """Get the initial prompt, either from file or environment variable"""
+        if cls.CUSTOM_INITIAL_PROMPT_FILE and os.path.exists(cls.CUSTOM_INITIAL_PROMPT_FILE):
+            try:
+                with open(cls.CUSTOM_INITIAL_PROMPT_FILE, 'r', encoding='utf-8') as f:
+                    return f.read().strip()
+            except Exception as e:
+                print(f"⚠️ Warning: Could not read custom prompt file: {e}")
+                print("📋 Using default initial prompt instead")
+        
+        return cls.INITIAL_PROMPT if cls.ENABLE_INITIAL_PROMPT else None
 
 # Validate configuration on import
 Config.validate()

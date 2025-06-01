@@ -31,12 +31,19 @@ class LiveClient:
         print("  • 'q' or 'quit' to exit")
         print("  • 'camera on/off' to toggle camera")
         print("  • 'screen on/off' to toggle screen sharing")
+        print("  • 'search on/off' to toggle Google Search")
         print("  • 'status' to check current settings")
+        print("  • 'history' to view conversation summary")
         print("  • 'clear' to clear conversation")
+        print("  • 'prompt' to view initial prompt")
         print("-"*50)
         print(f"🔧 Current Mode: {self.video_mode}")
         print(f"📷 Camera: {'✅ enabled' if self.video_manager.camera_enabled else '❌ disabled'}")
         print(f"🖥️  Screen: {'✅ enabled' if self.video_manager.screen_enabled else '❌ disabled'}")
+        print(f"🔍 Search: {'✅ enabled' if self.session_manager.search_enabled else '❌ disabled'}")
+        print(f"⚙️  Code Execution: ✅ enabled")
+        print(f"🎯 Initial Prompt: {'✅ enabled' if Config.ENABLE_INITIAL_PROMPT else '❌ disabled'}")
+        print(f"💬 Turn Coverage: {Config.TURN_COVERAGE}")
         print("="*50 + "\n")
 
         conversation_count = 0
@@ -65,23 +72,54 @@ class LiveClient:
                     self.video_manager.toggle_screen(True)
                     print("🖥️ Screen sharing enabled")
                     continue
+                elif text.lower() == "search off":
+                    self.session_manager.toggle_search(False)
+                    print("🔍 Google Search disabled")
+                    continue
+                elif text.lower() == "search on":
+                    self.session_manager.toggle_search(True)
+                    print("🔍 Google Search enabled")
+                    continue
                 elif text.lower() == "clear":
+                    self.session_manager.conversation_history.clear()
                     print("\n" + "🧹 Conversation cleared" + "\n")
                     conversation_count = 0
+                    continue
+                elif text.lower() == "history":
+                    summary = self.session_manager.get_conversation_summary()
+                    print(f"\n📊 Conversation Summary: {summary}\n")
+                    continue
+                elif text.lower() == "prompt":
+                    initial_prompt = Config.get_initial_prompt()
+                    if initial_prompt:
+                        print(f"\n🎯 Current Initial Prompt:")
+                        print(f"{'='*50}")
+                        print(initial_prompt)
+                        print(f"{'='*50}\n")
+                    else:
+                        print("\n❌ No initial prompt configured\n")
                     continue
                 elif text.lower() == "status":
                     print(f"\n📊 Current Status:")
                     print(f"  🎥 Mode: {self.video_mode}")
                     print(f"  📷 Camera: {'✅ enabled' if self.video_manager.camera_enabled else '❌ disabled'}")
                     print(f"  🖥️  Screen: {'✅ enabled' if self.video_manager.screen_enabled else '❌ disabled'}")
+                    print(f"  🔍 Search: {'✅ enabled' if self.session_manager.search_enabled else '❌ disabled'}")
+                    print(f"  ⚙️  Code Execution: ✅ enabled")
+                    print(f"  🎯 Initial Prompt: {'✅ enabled' if Config.ENABLE_INITIAL_PROMPT else '❌ disabled'}")
                     print(f"  💬 Messages: {conversation_count}")
+                    print(f"  🔄 Turn Coverage: {Config.TURN_COVERAGE}")
+                    print(f"  📝 Memory: {len(self.session_manager.conversation_history)} messages")
                     print()
                     continue
 
                 if text.strip():
                     conversation_count += 1
-                    # Send message to AI
-                    await self.session_manager.session.send(input=text, end_of_turn=True)
+                    # Send message with context using enhanced method
+                    await self.session_manager.send_message_with_context(
+                        text, 
+                        end_of_turn=Config.AUTO_END_TURN
+                    )
                     
                     # Brief pause to let the AI response start
                     await asyncio.sleep(0.1)
@@ -98,6 +136,9 @@ class LiveClient:
         print(f"📱 Mode: {self.video_mode}")
         print(f"🔑 API Key: {'✅ Loaded' if Config.GEMINI_API_KEY else '❌ Missing'}")
         print(f"🤖 Model: {Config.MODEL_NAME}")
+        print(f"🔍 Google Search: {'✅ Enabled' if Config.ENABLE_GOOGLE_SEARCH else '❌ Disabled'}")
+        print(f"🎯 Initial Prompt: {'✅ Enabled' if Config.ENABLE_INITIAL_PROMPT else '❌ Disabled'}")
+        print(f"🔄 Turn Coverage: {Config.TURN_COVERAGE}")
 
         try:
             # Get the connection context manager
@@ -108,6 +149,9 @@ class LiveClient:
                 asyncio.TaskGroup() as tg,
             ):
                 print("✅ Connected to Gemini Live API successfully!")
+                if Config.ENABLE_GOOGLE_SEARCH:
+                    print("🔍 Google Search tools loaded and ready!")
+                print("⚙️ Code execution capabilities enabled!")
 
                 # Initialize queues
                 self.audio_in_queue = asyncio.Queue()
